@@ -1,0 +1,22 @@
+# Web Framework and Server
+fastapi
+uvicorn
+
+# Orchestration and State Management
+langgraph
+typing-extensions
+
+# AI and LLM Integration
+groq
+
+# Google API and Authentication
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+
+# Data Parsing and Environment
+beautifulsoup4
+python-dotenv
+
+# Utilities
+email-validator
