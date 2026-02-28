@@ -8,7 +8,8 @@ from app.api.helpers import generate_reply
 from app.api.helpers import send_reply, mark_as_read 
 from app.api.helpers import get_gmail_service, decode_body
 load_dotenv()
-gmail_service = get_gmail_service()
+# Initialize the Gmail client lazily inside node factories to avoid
+# running network/credential refresh at import time.
 class EmailState(TypedDict):
     email_id: Optional[str]
     thread_id: Optional[str]
@@ -38,8 +39,9 @@ def clean_email_body(raw_body: str) -> str:
     return " ".join(text.split())
 
 
-def make_fetch_email_node(gmail_service):
+def make_fetch_email_node():
     def fetch_email_node(state: EmailState) -> EmailState:
+        gmail_service = get_gmail_service()
         email = read_unread(gmail_service)
         if not email:
             raise RuntimeError("No unread emails")
@@ -125,8 +127,9 @@ def human_approval_node(state: EmailState) -> EmailState:
     )
 
 
-def make_send_reply_node(gmail_service):
+def make_send_reply_node():
     def send_reply_node(state: EmailState) -> EmailState:
+        gmail_service = get_gmail_service()
         # Safety check (graph-level, not Gmail-level)
         if not state.get("draft_reply"):
             raise RuntimeError("No draft_reply present for send_reply")
@@ -183,12 +186,12 @@ def route_after_draft(state: EmailState):
 
 
 builder = StateGraph(EmailState)
-builder.add_node("fetch_email", make_fetch_email_node(gmail_service))
+builder.add_node("fetch_email", make_fetch_email_node())
 builder.add_node("classify_intent", classify_intent_node)
 builder.add_node("decide_action", decide_action_node)
 builder.add_node("draft_reply", draft_reply_node)
 builder.add_node("human_approval", human_approval_node)
-builder.add_node("send_reply", make_send_reply_node(gmail_service))
+builder.add_node("send_reply", make_send_reply_node())
 builder.add_node("log_result", log_result_node)
 
 builder.set_entry_point("fetch_email")
